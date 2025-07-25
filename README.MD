@@ -1,0 +1,1 @@
+Juego de estrategia y economía con un toque de estadística.
