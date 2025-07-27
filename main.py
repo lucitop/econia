@@ -2,7 +2,7 @@ from save_manager import save_game, load_game
 from ui import mostrar_estado, mostrar_menu, mostrar_bienvenida
 from city import Ciudad
 from events import get_random_event
-from policy import create_default_policies
+from policy import crear_politicas_por_defecto
 from advisor import Advisor
 import sys
 import os
@@ -167,24 +167,29 @@ def realizar_test_personalidad():
 
     return clase_final
 
+MODO_RAPIDO = True # cambiar a False para mostrar la intro completa
 
 def introduccion():
-    imprimir_titulo_enmarcado("CIVITAS: El Legado de las Ciudades", padding=4)
+    if MODO_RAPIDO:
+        print(Fore.CYAN + "[Intro omitida por modo rápido, recordar cambiar MODO_RAPIDO para no omitir]\n")
+        return
+    else:
+        imprimir_titulo_enmarcado("CIVITAS: El Legado de las Ciudades", padding=4)
 
-    time.sleep(0.6)
-    print()
-    imprimir_linea_animada_centrada("Año 2450. El viejo mundo ha colapsado.")
-    time.sleep(0.6)
+        time.sleep(0.6)
+        print()
+        imprimir_linea_animada_centrada("Año 2450. El viejo mundo ha colapsado.")
+        time.sleep(0.6)
 
-    imprimir_linea_animada_centrada("Pequeñas comunidades independientes comienzan a emerger de las ruinas,")
-    imprimir_linea_animada_centrada("buscando forjar una nueva era.")
-    time.sleep(0.6)
+        imprimir_linea_animada_centrada("Pequeñas comunidades independientes comienzan a emerger de las ruinas,")
+        imprimir_linea_animada_centrada("buscando forjar una nueva era.")
+        time.sleep(0.6)
 
-    print()
-    imprimir_linea_animada_centrada("Tu rol es guiar a una de esas ciudades.")
-    imprimir_linea_animada_centrada("¿Serás un líder sabio, implacable, espiritual o progresista?")
-    time.sleep(0.6)
-    print("\n" + "═" * 60 + "\n")
+        print()
+        imprimir_linea_animada_centrada("Tu rol es guiar a una de esas ciudades.")
+        imprimir_linea_animada_centrada("¿Serás un líder sabio, implacable, espiritual o progresista?")
+        time.sleep(0.6)
+        print("\n" + "═" * 60 + "\n")
 
 
 
@@ -214,7 +219,10 @@ def iniciar_juego():
         input("\nPresioná Enter para continuar en modo debug...")
     
     elif eleccion == 'c':
-        ciudad = cargar_ciudad()
+        from save_manager import load_game
+        from advisor import Advisor
+        advisor = Advisor()
+        ciudad = load_game(None, advisor)
 
     else:
         clase_ciudad = realizar_test_personalidad()
@@ -273,18 +281,32 @@ def mostrar_estado_estetico(city):
     print(Fore.CYAN + "=" * 50 + "\n")
 
 def menu_aplicar_politica(city, policies):
-    print("\nPolíticas disponibles:")
+    print("\n📜 Políticas disponibles:")
     for i, policy in enumerate(policies):
-        print(f"{i + 1}. {policy.name}")
+        print(f"{i + 1}. {policy.nombre}")
+
     try:
         eleccion = int(input("Elegí una política para aplicar (número): "))
         politica_seleccionada = policies[eleccion - 1]
-        efectos = politica_seleccionada.apply()
-        city.aplicar_efectos(efectos, politica_seleccionada.name)
-        print(Fore.LIGHTBLUE_EX + Style.BRIGHT + f"\nAplicada política: {politica_seleccionada.name}")
+
+        if politica_seleccionada.clases_permitidas and city.clase not in politica_seleccionada.clases_permitidas:
+            print(Fore.RED + f"\n⚠ Esta política contradice la ideología de tu ciudad ({city.clase}).")
+            print("Podés aplicarla igual, pero tendrá consecuencias internas.")
+            confirmacion = input("¿Querés continuar? (s/n): ").strip().lower()
+            if confirmacion != "s":
+                return
+            # Penalización por contradicción ideológica
+            city.felicidad = max(0, city.felicidad - 5)
+
+        efectos = politica_seleccionada.aplicar(city)
+
+        print(Fore.LIGHTBLUE_EX + Style.BRIGHT + f"\n✔ Política aplicada: {politica_seleccionada.nombre}")
         print(Fore.YELLOW + f"Efectos: {efectos}")
         mostrar_estado_estetico(city)
         print(Fore.LIGHTBLUE_EX + "─" * 50)
+
+    except (ValueError, IndexError):
+        print("Opción no válida.")
 
 
     except (ValueError, IndexError):
@@ -307,7 +329,7 @@ def main():
         print("No se pudo iniciar el juego correctamente.")
         return
 
-    policies = create_default_policies()
+    policies = crear_politicas_por_defecto()
     advisor = Advisor()
 
     while True:
@@ -333,16 +355,28 @@ def main():
 
         elif opcion == "5":
             city.avanzar_dia()
+            from events import get_random_event, get_random_interactive_event
+
             evento = get_random_event()
+            evento_interactivo = get_random_interactive_event()
+
             if evento:
-                print("\n" + evento.apply(city))
-            print("\nPasó un día. Nuevo dia.")
+                print(evento.apply(city))
+
+            if evento_interactivo:
+                resultado = evento_interactivo.mostrar_y_resolver(city)
+                print(Fore.LIGHTBLUE_EX + "\n" + resultado)
+
+            if not evento and not evento_interactivo:
+                print(Fore.LIGHTBLACK_EX + "\nEl día transcurre sin eventos destacados.")
 
         elif opcion == "6":
             save_game(city, advisor)
 
         elif opcion == "7":
-            load_game(city, advisor)
+            nueva_ciudad = load_game(None, advisor)
+            if nueva_ciudad:
+                city = nueva_ciudad
 
         elif opcion == "8":
             print(Fore.GREEN + Style.BRIGHT + "\n╔════════════════════════════╗")

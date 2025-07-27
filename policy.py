@@ -1,34 +1,38 @@
-import random
+class Politica:
+    def __init__(self, nombre, efectos, clases_permitidas=None):
+        self.nombre = nombre
+        self.efectos = efectos  # dict: {"dinero": -20, "salud": +10}
+        self.clases_permitidas = clases_permitidas or []
 
-class Policy:
-    def __init__(self, name, description, effect_functions):
-        self.name = name
-        self.description = description
-        self.effect_functions = effect_functions  # dict of { 'variable': function }
+    def aplicar(self, ciudad):
+        ciudad.aplicar_efectos(self.efectos, self.nombre)
+        return self.efectos
 
-    def apply(self):
-        effects = {}
-        for variable, func in self.effect_functions.items():
-            effects[variable] = func()
-        return effects
-
-def create_default_policies():
+def crear_politicas_por_defecto():
     return [
-        Policy(
-            "Raise Taxes",
-            "Increase government revenue.",
-            {
-                "dinero": lambda: random.randint(10, 30),
-                "felicidad": lambda: random.choice([-10, -5, 0])
-            }
+        Politica(
+            "Inversión en salud pública",
+            {"dinero": -20, "salud": +10},
+            clases_permitidas=["Colectivista", "Tradicionalista"]
         ),
-        Policy(
-            "Invest in Health",
-            "Improve health services at a fiscal cost.",
-            {
-                "dinero": lambda: -random.randint(15, 25),
-                "salud": lambda: random.randint(5, 15),
-                "felicidad": lambda: random.choice([0, 3, 5])
-            }
+        Politica(
+            "Reducción de impuestos",
+            {"dinero": -10, "felicidad": +5},
+            clases_permitidas=["Liberal"]
+        ),
+        Politica(
+            "Subsidios al empleo",
+            {"dinero": -15, "empleo": +8},
+            clases_permitidas=["Pragmática", "Colectivista"]
+        ),
+        Politica(
+            "Ajuste fiscal severo",
+            {"dinero": +30, "felicidad": -10},
+            clases_permitidas=["Liberal", "Tecno-Productivista"]
+        ),
+        Politica(
+            "Reforma educativa pública",
+            {"dinero": -25, "empleo": +5, "felicidad": +4},
+            clases_permitidas=["Colectivista", "Tradicionalista"]
         )
     ]

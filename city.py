@@ -11,9 +11,13 @@ class Ciudad:
         self.identidad = clase
         self.clase = clase
         self.objetivos = obtener_objetivos_para_clase(clase)
-
         self.dia = 1
         self.historial = []
+        
+        def avanzar_dia(self):
+            self.dia += 1
+            self.historial.append((str(self.dia), "Avance natural del tiempo", {}))
+
 
     def aplicar_efectos(self, efectos: dict, fuente: str):
         for variable, cambio in efectos.items():
